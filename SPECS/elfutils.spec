@@ -1,5 +1,5 @@
 Name: elfutils
-Version: 0.188
+Version: 0.189
 %global baserelease 3
 Release: %{baserelease}%{?dist}
 URL: http://elfutils.org/
@@ -65,12 +65,12 @@ BuildRequires: gettext-devel
 
 # Patches
 
-# Don't export internal function.
-Patch1: elfutils-0.188-static-extract_section.patch
-# Silence some compiler warnings
-Patch2: elfutils-0.188-compile-warnings.patch
-# The debuginfod_client object lifetime needs more careful handling
-Patch3: elfutils-0.188-debuginfod-client-lifetime.patch
+# elfcompress: Don't compress if section already compressed unless forced
+Patch1: elfutils-0.189-elfcompress.patch
+# libelf: Replace list of elf_getdata_rawchunk results with a tree
+Patch2: elfutils-0.189-elf_getdata_rawchunk.patch
+# PR29696: Removed secondary fd close in cache config causing race condition
+Patch3: elfutils-0.189-debuginfod_config_cache-double-close.patch
 
 %description
 Elfutils is a collection of utilities, including stack (to show
@@ -284,9 +284,9 @@ RPM_OPT_FLAGS="${RPM_OPT_FLAGS} -Wformat"
 trap 'cat config.log' EXIT
 
 %if 0%{?centos} >= 8
-%configure CFLAGS="$RPM_OPT_FLAGS -fexceptions" --enable-debuginfod-urls=https://debuginfod.centos.org/
+%configure CFLAGS="$RPM_OPT_FLAGS" --enable-debuginfod-urls=https://debuginfod.centos.org/
 %else
-%configure CFLAGS="$RPM_OPT_FLAGS -fexceptions"
+%configure CFLAGS="$RPM_OPT_FLAGS"
 %endif
 trap '' EXIT
 %make_build
@@ -461,6 +461,16 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
+* Wed Jun 28 2023 Mark Wielaard <mjw@redhat.com> - 0.189-3
+- Add elfutils-0.189-elf_getdata_rawchunk.patch
+- Add elfutils-0.189-debuginfod_config_cache-double-close.patch
+
+* Mon Apr 24 2023 Mark Wielaard <mjw@redhat.com> - 0.189-2
+- Add elfutils-0.189-elfcompress.patch
+
+* Tue Apr 4 2023 Mark Wielaard <mjw@redhat.com> - 0.189-1
+- Upgrade to upsteam elfutils 0.189.
+
 * Mon Nov 7 2022 Mark Wielaard <mjw@redhat.com> - 0.188-3
 - Add elfutils-0.188-compile-warnings.patch
 - Add elfutils-0.188-debuginfod-client-lifetime.patch
