@@ -1,11 +1,12 @@
 Name: elfutils
-Version: 0.189
-%global baserelease 3
+Version: 0.190
+%global baserelease 2
 Release: %{baserelease}%{?dist}
 URL: http://elfutils.org/
 %global source_url ftp://sourceware.org/pub/elfutils/%{version}/
 License: GPLv3+ and (GPLv2+ or LGPLv3+) and GFDL
 Source: %{?source_url}%{name}-%{version}.tar.bz2
+Source1: testcore-noncontig.bz2
 Summary: A collection of utilities and DSOs to handle ELF files and DWARF data
 
 # Needed for isa specific Provides and Requires.
@@ -64,13 +65,8 @@ BuildRequires: gettext-devel
 %endif
 
 # Patches
-
-# elfcompress: Don't compress if section already compressed unless forced
-Patch1: elfutils-0.189-elfcompress.patch
-# libelf: Replace list of elf_getdata_rawchunk results with a tree
-Patch2: elfutils-0.189-elf_getdata_rawchunk.patch
-# PR29696: Removed secondary fd close in cache config causing race condition
-Patch3: elfutils-0.189-debuginfod_config_cache-double-close.patch
+# RHEL-18913: Fix handling of corefiles with non-contiguous segments.
+Patch1: elfutils-0.190-fix-core-noncontig.patch
 
 %description
 Elfutils is a collection of utilities, including stack (to show
@@ -271,6 +267,8 @@ autoreconf -f -v -i
 # are executable.
 find . -name \*.sh ! -perm -0100 -print | xargs chmod +x
 
+cp %{SOURCE1} tests
+
 %build
 # Remove -Wall from default flags.  The makefiles enable enough warnings
 # themselves, and they use -Werror.  Appending -Wall defeats the cases where
@@ -362,6 +360,7 @@ fi
 %{_bindir}/eu-ranlib
 %{_bindir}/eu-readelf
 %{_bindir}/eu-size
+%{_bindir}/eu-srcfiles
 %{_bindir}/eu-stack
 %{_bindir}/eu-strings
 %{_bindir}/eu-strip
@@ -441,7 +440,6 @@ fi
 %config(noreplace) %{_sysconfdir}/sysconfig/debuginfod
 %{_unitdir}/debuginfod.service
 %{_mandir}/man8/debuginfod*.8*
-%{_mandir}/man7/debuginfod*.7*
 
 
 %dir %attr(0700,debuginfod,debuginfod) %{_localstatedir}/cache/debuginfod
@@ -461,6 +459,18 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
+* Fri Dec  8 2023 Aaron Merey <amerey@redhat.com> - 0.190-2
+- Add elfutils-0.190-fix-core-noncontig.patch
+
+* Fri Nov  3 2023 Mark Wielaard <mjw@redhat.com> - 0.190-1
+- Upgrade to upstream elfutils 0.190
+- Add eu-srcfiles
+- Drop upstreamed patches
+  elfutils-0.189-debuginfod_config_cache-double-close.patch
+  elfutils-0.189-elf_getdata_rawchunk.patch
+  elfutils-0.189-elfcompress.patch
+- Only package debuginfod-client-config.7 manpage for debuginfod-client
+
 * Wed Jun 28 2023 Mark Wielaard <mjw@redhat.com> - 0.189-3
 - Add elfutils-0.189-elf_getdata_rawchunk.patch
 - Add elfutils-0.189-debuginfod_config_cache-double-close.patch
