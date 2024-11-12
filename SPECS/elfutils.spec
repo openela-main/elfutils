@@ -1,13 +1,16 @@
+# Rebuild --with static to enable static subpackages
+# This is *not* supported by elfutils maintainers
+%bcond_with static
+
 Name: elfutils
-Version: 0.190
-%global baserelease 2
+Version: 0.191
+%global baserelease 4
 Release: %{baserelease}%{?dist}
 URL: http://elfutils.org/
 %global source_url ftp://sourceware.org/pub/elfutils/%{version}/
-License: GPLv3+ and (GPLv2+ or LGPLv3+) and GFDL
+License: GPL-3.0-or-later AND (GPL-2.0-or-later OR LGPL-3.0-or-later) AND GFDL-1.3-no-invariants-or-later
 Source: %{?source_url}%{name}-%{version}.tar.bz2
 Source1: elfutils-debuginfod.sysusers
-Source2: testcore-noncontig.bz2
 Summary: A collection of utilities and DSOs to handle ELF files and DWARF data
 
 # Needed for isa specific Provides and Requires.
@@ -15,12 +18,7 @@ Summary: A collection of utilities and DSOs to handle ELF files and DWARF data
 
 Requires: elfutils-libelf%{depsuffix} = %{version}-%{release}
 Requires: elfutils-libs%{depsuffix} = %{version}-%{release}
-%if 0%{?rhel} >= 8 || 0%{?fedora} >= 20
-# see Supplements: instead
-# Recommends: elfutils-debuginfod-client%%{depsuffix} = %%{version}-%%{release}
-%else
 Requires: elfutils-debuginfod-client%{depsuffix} = %{version}-%{release}
-%endif
 
 BuildRequires: gcc
 # For libstdc++ demangle support
@@ -73,8 +71,6 @@ BuildRequires: gettext-devel
 %endif
 
 # Patches
-# RHEL-18913: Fix handling of corefiles with non-contiguous segments.
-Patch1: elfutils-0.190-fix-core-noncontig.patch
 
 %description
 Elfutils is a collection of utilities, including stack (to show
@@ -86,7 +82,7 @@ elfcompress (to compress or decompress ELF sections).
 
 %package libs
 Summary: Libraries to handle compiled objects
-License: GPLv2+ or LGPLv3+
+License: GPL-2.0-or-later OR LGPL-3.0-or-later
 %if 0%{!?_isa:1}
 Provides: elfutils-libs%{depsuffix} = %{version}-%{release}
 %endif
@@ -110,13 +106,12 @@ libraries.
 
 %package devel
 Summary: Development libraries to handle compiled objects
-License: GPLv2+ or LGPLv3+
+License: GPL-2.0-or-later OR LGPL-3.0-or-later
 %if 0%{!?_isa:1}
 Provides: elfutils-devel%{depsuffix} = %{version}-%{release}
 %endif
 Requires: elfutils-libs%{depsuffix} = %{version}-%{release}
 Requires: elfutils-libelf-devel%{depsuffix} = %{version}-%{release}
-Obsoletes: elfutils-devel-static < 0.180-5
 
 %description devel
 The elfutils-devel package contains the libraries to create
@@ -124,9 +119,25 @@ applications for handling compiled objects.  libdw provides access
 to the DWARF debugging information.  libasm provides a programmable
 assembler interface.
 
+%if %{with static}
+%package devel-static
+Summary: Static archives to handle compiled objects
+License: GPL-2.0-or-later OR LGPL-3.0-or-later
+%if 0%{!?_isa:1}
+Provides: elfutils-devel-static%{depsuffix} = %{version}-%{release}
+%endif
+Requires: elfutils-devel%{depsuffix} = %{version}-%{release}
+Requires: elfutils-libelf-devel-static%{depsuffix} = %{version}-%{release}
+Requires: libzstd-static%{depsuffix}
+
+%description devel-static
+The elfutils-devel-static package contains the static archives
+with the code to handle compiled objects.
+%endif
+
 %package libelf
 Summary: Library to read and write ELF files
-License: GPLv2+ or LGPLv3+
+License: GPL-2.0-or-later OR LGPL-3.0-or-later
 %if 0%{!?_isa:1}
 Provides: elfutils-libelf%{depsuffix} = %{version}-%{release}
 %endif
@@ -140,13 +151,12 @@ elfutils package use it also to generate new ELF files.
 
 %package libelf-devel
 Summary: Development support for libelf
-License: GPLv2+ or LGPLv3+
+License: GPL-2.0-or-later OR LGPL-3.0-or-later
 %if 0%{!?_isa:1}
 Provides: elfutils-libelf-devel%{depsuffix} = %{version}-%{release}
 %endif
 Requires: elfutils-libelf%{depsuffix} = %{version}-%{release}
 Obsoletes: libelf-devel <= 0.8.2-2
-Obsoletes: elfutils-libelf-devel-static < 0.180-5
 
 %description libelf-devel
 The elfutils-libelf-devel package contains the libraries to create
@@ -154,10 +164,24 @@ applications for handling compiled objects.  libelf allows you to
 access the internals of the ELF object file format, so you can see the
 different sections of an ELF file.
 
+%if %{with static}
+%package libelf-devel-static
+Summary: Static archive of libelf
+License: GPL-2.0-or-later OR LGPL-3.0-or-later
+%if 0%{!?_isa:1}
+Provides: elfutils-libelf-devel-static%{depsuffix} = %{version}-%{release}
+%endif
+Requires: elfutils-libelf-devel%{depsuffix} = %{version}-%{release}
+
+%description libelf-devel-static
+The elfutils-libelf-static package contains the static archive
+for libelf.
+%endif
+
 %if %{provide_yama_scope}
 %package default-yama-scope
 Summary: Default yama attach scope sysctl setting
-License: GPLv2+ or LGPLv3+
+License: GPL-2.0-or-later OR LGPL-3.0-or-later
 Provides: default-yama-scope
 BuildArch: noarch
 # For the sysctl_apply macro we need systemd as build requires.
@@ -191,7 +215,7 @@ profiling) of processes.
 
 %package debuginfod-client
 Summary: Library and command line client for build-id HTTP ELF/DWARF server
-License: GPLv3+ and (GPLv2+ or LGPLv3+)
+License: GPL-3.0-or-later AND (GPL-2.0-or-later OR LGPL-3.0-or-later)
 %if 0%{!?_isa:1}
 Provides: elfutils-debuginfod-client%{depsuffix} = %{version}-%{release}
 %endif
@@ -208,7 +232,7 @@ Supplements: valgrind annocheck bpftrace dwarves libabigail
 
 %package debuginfod-client-devel
 Summary: Libraries and headers to build debuginfod client applications
-License: GPLv2+ or LGPLv3+
+License: GPL-2.0-or-later OR LGPL-3.0-or-later
 %if 0%{!?_isa:1}
 Provides: elfutils-debuginfod-client-devel%{depsuffix} = %{version}-%{release}
 %endif
@@ -216,7 +240,7 @@ Requires: elfutils-debuginfod-client%{depsuffix} = %{version}-%{release}
 
 %package debuginfod
 Summary: HTTP ELF/DWARF file server addressed by build-id
-License: GPLv3+
+License: GPL-3.0-or-later
 Requires: elfutils-libs%{depsuffix} = %{version}-%{release}
 Requires: elfutils-libelf%{depsuffix} = %{version}-%{release}
 Requires: elfutils-debuginfod-client%{depsuffix} = %{version}-%{release}
@@ -262,8 +286,6 @@ autoreconf -f -v -i
 # are executable.
 find . -name \*.sh ! -perm -0100 -print | xargs chmod +x
 
-cp %{SOURCE2} tests
-
 %build
 # Remove -Wall from default flags.  The makefiles enable enough warnings
 # themselves, and they use -Werror.  Appending -Wall defeats the cases where
@@ -288,8 +310,10 @@ trap '' EXIT
 %make_install
 
 chmod +x ${RPM_BUILD_ROOT}%{_prefix}/%{_lib}/lib*.so*
+%if %{without static}
 # We don't want the static libraries
 rm ${RPM_BUILD_ROOT}%{_prefix}/%{_lib}/lib{elf,dw,asm}.a
+%endif
 
 # We don't have standard DEBUGINFOD_URLS necessarily, but still ship
 # the profile.d/debuginfod* files, in case of a site specific server.
@@ -387,6 +411,12 @@ fi
 %{_libdir}/libdw.so
 %{_libdir}/pkgconfig/libdw.pc
 
+%if %{with static}
+%files devel-static
+%{_libdir}/libdw.a
+%{_libdir}/libasm.a
+%endif
+
 %files -f %{name}.lang libelf
 %license COPYING-GPLV2 COPYING-LGPLV3
 %{_libdir}/libelf-%{version}.so
@@ -399,6 +429,11 @@ fi
 %{_libdir}/libelf.so
 %{_libdir}/pkgconfig/libelf.pc
 %{_mandir}/man3/elf_*.3*
+
+%if %{with static}
+%files libelf-devel-static
+%{_libdir}/libelf.a
+%endif
 
 %if %{provide_yama_scope}
 %files default-yama-scope
@@ -453,6 +488,24 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
+* Fri Apr 19 2024 Aaron Merey <amerey@redhat.com> - 0.191-3
+- eu-srcfiles directly links to libdebuginfod.so so explicitly
+  Require elfutils-debuginfod-client not just Recommends.
+
+* Thu Apr 18 2024 Aaron Merey <amerey@redhat.com> - 0.191-2
+- Update SPDX licenses.
+
+* Fri Apr 12 2024 Aaron Merey <amerey@redhat.com> - 0.191-1
+- Upgrade to upstream elfutils 0.191
+- Drop upstreamed patches
+  elfutils-0.190-fix-core-noncontig.patch
+  elfutils-0.190-gcc-14.patch
+  elfutils-0.190-remove-ET_REL-unstrip-test.patch
+- Drop testcore-noncontig.bz2
+- Add elfutils-0.191-profile-empty-urls.patch
+- Add elfutils-0.191-riscv-flatten.patch
+- Add feature flag for reenabling elfutils-libelf-devel-static and elfutils-devel-static
+
 * Fri Dec  8 2023 Aaron Merey <amerey@redhat.com> - 0.190-2
 - Add elfutils-0.190-fix-core-noncontig.patch
 
