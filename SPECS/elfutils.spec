@@ -3,8 +3,8 @@
 %bcond_with static
 
 Name: elfutils
-Version: 0.191
-%global baserelease 4
+Version: 0.192
+%global baserelease 5
 Release: %{baserelease}%{?dist}
 URL: http://elfutils.org/
 %global source_url ftp://sourceware.org/pub/elfutils/%{version}/
@@ -15,6 +15,13 @@ Summary: A collection of utilities and DSOs to handle ELF files and DWARF data
 
 # Needed for isa specific Provides and Requires.
 %global depsuffix %{?_isa}%{!?_isa:-%{_arch}}
+
+# eu-stacktrace currently only supports x86_64
+%ifarch x86_64
+%global enable_stacktrace 1
+%else
+%global enable_stacktrace 0
+%endif
 
 Requires: elfutils-libelf%{depsuffix} = %{version}-%{release}
 Requires: elfutils-libs%{depsuffix} = %{version}-%{release}
@@ -39,6 +46,8 @@ BuildRequires: pkgconfig(libmicrohttpd) >= 0.9.33
 BuildRequires: pkgconfig(libcurl) >= 7.29.0
 BuildRequires: pkgconfig(sqlite3) >= 3.7.17
 BuildRequires: pkgconfig(libarchive) >= 3.1.2
+# For debugindod metadata query
+BuildRequires: pkgconfig(json-c) >= 0.11
 
 # For tests need to bunzip2 test files.
 BuildRequires: bzip2
@@ -50,6 +59,17 @@ BuildRequires: bsdtar
 BuildRequires: curl
 # For run-debuginfod-response-headers.sh test case
 BuildRequires: socat
+
+# For debuginfod rpm IMA verification
+BuildRequires: rpm-devel
+BuildRequires: ima-evm-utils-devel
+BuildRequires: openssl-devel
+BuildRequires: rpm-sign
+
+# For eu-stacktrace
+%if %{enable_stacktrace}
+BuildRequires: sysprof-capture-devel
+%endif
 
 BuildRequires: automake
 BuildRequires: autoconf
@@ -71,6 +91,18 @@ BuildRequires: gettext-devel
 %endif
 
 # Patches
+
+# Include libeu.a objects in libelf.a for static linking.
+Patch1: elfutils-0.192-libelf-static.patch
+
+# Fix eu-stacktrace LTO build error.
+Patch2: elfutils-0.192-stacktrace-lto.patch
+
+# Fix configure.ac setting ENABLE_DEBUGINFOD_IMA_VERIFICATION.
+Patch3: elfutils-0.192-fix-configure-conditional.patch
+
+# Skip IMA test not currently supported in RHEL 9.
+Patch4: elfutils-0.192-skip-ima-test.patch
 
 %description
 Elfutils is a collection of utilities, including stack (to show
@@ -298,11 +330,16 @@ RPM_OPT_FLAGS="${RPM_OPT_FLAGS} -Wformat"
 
 trap 'cat config.log' EXIT
 
+%configure CFLAGS="$RPM_OPT_FLAGS" \
 %if 0%{?centos} >= 8
-%configure CFLAGS="$RPM_OPT_FLAGS" --enable-debuginfod-urls=https://debuginfod.centos.org/
-%else
-%configure CFLAGS="$RPM_OPT_FLAGS"
+	--enable-debuginfod-urls=%{dist_debuginfod_url} \
 %endif
+%if %{enable_stacktrace}
+	--enable-stacktrace \
+%endif
+	--enable-debuginfod \
+	--enable-debuginfod-ima-verification \
+	--enable-debuginfod-ima-cert-path=%{_sysconfdir}/keys/ima
 trap '' EXIT
 %make_build
 
@@ -385,6 +422,9 @@ fi
 %{_bindir}/eu-size
 %{_bindir}/eu-srcfiles
 %{_bindir}/eu-stack
+%if %{enable_stacktrace}
+%{_bindir}/eu-stacktrace
+%endif
 %{_bindir}/eu-strings
 %{_bindir}/eu-strip
 %{_bindir}/eu-unstrip
@@ -429,6 +469,9 @@ fi
 %{_libdir}/libelf.so
 %{_libdir}/pkgconfig/libelf.pc
 %{_mandir}/man3/elf_*.3*
+%{_mandir}/man3/elf32_*.3*
+%{_mandir}/man3/elf64_*.3*
+%{_mandir}/man3/libelf.3*
 
 %if %{with static}
 %files libelf-devel-static
@@ -447,6 +490,8 @@ fi
 %{_mandir}/man1/debuginfod-find.1*
 %{_mandir}/man7/debuginfod*.7*
 %{_sysconfdir}/profile.d/debuginfod.*
+%{_sysconfdir}/debuginfod/*.certpath
+%config(noreplace) %{_datadir}/fish/vendor_conf.d/*
 %if 0%{?centos} >= 8
 %{_sysconfdir}/debuginfod/*.urls
 %endif
@@ -488,6 +533,29 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
+* Jan 15 2025 Aaron Merey <amerey@redhat.com> - 0.192-5
+- Add debuginfod certpath to %files unconditionally
+
+* Jan 15 2025 Aaron Merey <amerey@redhat.com> - 0.192-4
+- NVR Bump.
+
+* Fri Dec 13 2024 Aaron Merey <amerey@redhat.com> - 0.192-3
+- Enable debuginfod IMA verification
+- Add elfutils-0.192-fix-configure-conditional.patch
+- Add elfutils-0.192-skip-ima-test.patch
+
+* Thu Oct 24 2024 Aaron Merey <amerey@redhat.com> - 0.192-2
+- Enable eu-stacktrace on x86_64
+- Add elfutils-0.192-stacktrace-lto.patch
+
+* Wed Oct 23 2024 Aaron Merey <amerey@redhat.com> - 0.192-1
+- Upgrade to upstream elfutils 0.192
+- Drop upstreamed patches
+  elfutils-0.190-riscv-flatten.patch
+  elfutils-0.191-riscv-flatten.patch
+  elfutils-0.191-profile-empty-urls.patch
+- Add elfutils-0.192-libelf-static.patch
+
 * Fri Apr 19 2024 Aaron Merey <amerey@redhat.com> - 0.191-3
 - eu-srcfiles directly links to libdebuginfod.so so explicitly
   Require elfutils-debuginfod-client not just Recommends.
