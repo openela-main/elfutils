@@ -4,7 +4,7 @@
 
 Name: elfutils
 Version: 0.192
-%global baserelease 5
+%global baserelease 6
 Release: %{baserelease}%{?dist}
 URL: http://elfutils.org/
 %global source_url ftp://sourceware.org/pub/elfutils/%{version}/
@@ -103,6 +103,9 @@ Patch3: elfutils-0.192-fix-configure-conditional.patch
 
 # Skip IMA test not currently supported in RHEL 9.
 Patch4: elfutils-0.192-skip-ima-test.patch
+
+# Avoid freeing uninitialized variable.
+Patch5: elfutils-0.192-fix-free.patch
 
 %description
 Elfutils is a collection of utilities, including stack (to show
@@ -533,6 +536,9 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
+* Fri Mar 14 2025 Aaron Merey <amerey@redhat.com> - 0.192-6
+- Add elfutils-0.192-fix-free.patch
+
 * Jan 15 2025 Aaron Merey <amerey@redhat.com> - 0.192-5
 - Add debuginfod certpath to %files unconditionally
 
