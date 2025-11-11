@@ -3,8 +3,8 @@
 %bcond_with static
 
 Name: elfutils
-Version: 0.192
-%global baserelease 6
+Version: 0.193
+%global baserelease 1
 Release: %{baserelease}%{?dist}
 URL: http://elfutils.org/
 %global source_url ftp://sourceware.org/pub/elfutils/%{version}/
@@ -92,20 +92,8 @@ BuildRequires: gettext-devel
 
 # Patches
 
-# Include libeu.a objects in libelf.a for static linking.
-Patch1: elfutils-0.192-libelf-static.patch
-
-# Fix eu-stacktrace LTO build error.
-Patch2: elfutils-0.192-stacktrace-lto.patch
-
-# Fix configure.ac setting ENABLE_DEBUGINFOD_IMA_VERIFICATION.
-Patch3: elfutils-0.192-fix-configure-conditional.patch
-
 # Skip IMA test not currently supported in RHEL 9.
-Patch4: elfutils-0.192-skip-ima-test.patch
-
-# Avoid freeing uninitialized variable.
-Patch5: elfutils-0.192-fix-free.patch
+Patch1: elfutils-0.192-skip-ima-test.patch
 
 %description
 Elfutils is a collection of utilities, including stack (to show
@@ -448,6 +436,7 @@ fi
 %{_includedir}/elfutils/libasm.h
 %{_includedir}/elfutils/libdw.h
 %{_includedir}/elfutils/libdwfl.h
+%{_includedir}/elfutils/libdwfl_stacktrace.h
 %{_includedir}/elfutils/libdwelf.h
 %{_includedir}/elfutils/version.h
 %{_libdir}/libasm.so
@@ -536,6 +525,13 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
+* Wed Apr 30 2025 Aaron Merey <amerey@redhat.com> - 0.193-1
+- Upgrade to upstream elfutils 0.193
+- Drop upstreamed patches
+  elfutils-0.192-fix-free.patch
+  elfutils-0.192-libelf-static.patch
+  elfutils-0.192-stacktrace-lto.patch
+
 * Fri Mar 14 2025 Aaron Merey <amerey@redhat.com> - 0.192-6
 - Add elfutils-0.192-fix-free.patch
 
