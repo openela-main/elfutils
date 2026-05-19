@@ -3,7 +3,7 @@
 %bcond_with static
 
 Name: elfutils
-Version: 0.193
+Version: 0.194
 %global baserelease 1
 Release: %{baserelease}%{?dist}
 URL: http://elfutils.org/
@@ -94,6 +94,9 @@ BuildRequires: gettext-devel
 
 # Skip IMA test not currently supported in RHEL 9.
 Patch1: elfutils-0.192-skip-ima-test.patch
+
+# Prevent assert failure in readelf for some -ggdb3 binaries.
+Patch2: elfutils-0.194-alloc-jobs.patch
 
 %description
 Elfutils is a collection of utilities, including stack (to show
@@ -463,6 +466,7 @@ fi
 %{_mandir}/man3/elf_*.3*
 %{_mandir}/man3/elf32_*.3*
 %{_mandir}/man3/elf64_*.3*
+%{_mandir}/man3/gelf_*.3*
 %{_mandir}/man3/libelf.3*
 
 %if %{with static}
@@ -525,6 +529,10 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
+* Wed Oct 29 2025 Aaron Merey <amerey@redhat.com> - 0.194-1
+- Upgrade to upstream elfutils 0.194
+- Add elfutils-0.194-alloc-jobs.patch
+
 * Wed Apr 30 2025 Aaron Merey <amerey@redhat.com> - 0.193-1
 - Upgrade to upstream elfutils 0.193
 - Drop upstreamed patches
