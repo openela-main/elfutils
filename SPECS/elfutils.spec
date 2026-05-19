@@ -3,8 +3,8 @@
 %bcond_with static
 
 Name: elfutils
-Version: 0.193
-%global baserelease 1
+Version: 0.194
+%global baserelease 2
 Release: %{baserelease}%{?dist}
 URL: http://elfutils.org/
 %global source_url ftp://sourceware.org/pub/elfutils/%{version}/
@@ -95,6 +95,12 @@ BuildRequires: gettext-devel
 
 # For s390x... FDO package notes are bogus.
 Patch1: elfutils-0.186-fdo-swap.patch
+
+# Prevent assert failure in readelf for some -ggdb3 binaries.
+Patch2: elfutils-0.194-alloc-jobs.patch
+
+# Ensure sh_addr fields initialized to zero for ET_REL binaries.
+Patch3: elfutils-0.194-zero-sh_addr.patch
 
 %description
 Elfutils is a collection of utilities, including stack (to show
@@ -456,6 +462,7 @@ fi
 %{_mandir}/man3/elf_*.3*
 %{_mandir}/man3/elf32_*.3*
 %{_mandir}/man3/elf64_*.3*
+%{_mandir}/man3/gelf_*.3*
 %{_mandir}/man3/libelf.3*
 
 %if %{with static}
@@ -518,6 +525,13 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
+* Thr Mar 5 2026 Aaron Merey <amerey@redhat.com> - 0.194-2
+- Add elfutils-0.194-zero-sh_addr.patch
+
+* Thr Oct 30 2025 Aaron Merey <amerey@redhat.com> - 0.194-1
+- Upgrade to upstream elfutils 0.194
+- Add elfutils-0.194-alloc-jobs.patch
+
 * Wed Apr 30 2025 Aaron Merey <amerey@redhat.com> - 0.193-1
 - Upgrade to upstream elfutils 0.193
 - Drop upstreamed patches
