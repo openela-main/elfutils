@@ -3,8 +3,8 @@
 %bcond_with static
 
 Name: elfutils
-Version: 0.194
-%global baserelease 2
+Version: 0.195
+%global baserelease 1
 Release: %{baserelease}%{?dist}
 URL: http://elfutils.org/
 %global source_url ftp://sourceware.org/pub/elfutils/%{version}/
@@ -17,7 +17,7 @@ Summary: A collection of utilities and DSOs to handle ELF files and DWARF data
 %global depsuffix %{?_isa}%{!?_isa:-%{_arch}}
 
 # eu-stacktrace currently only supports x86_64
-%ifarch x86_64
+%ifarch x86_64 aarch64
 %global enable_stacktrace 1
 %else
 %global enable_stacktrace 0
@@ -95,12 +95,6 @@ BuildRequires: gettext-devel
 
 # For s390x... FDO package notes are bogus.
 Patch1: elfutils-0.186-fdo-swap.patch
-
-# Prevent assert failure in readelf for some -ggdb3 binaries.
-Patch2: elfutils-0.194-alloc-jobs.patch
-
-# Ensure sh_addr fields initialized to zero for ET_REL binaries.
-Patch3: elfutils-0.194-zero-sh_addr.patch
 
 %description
 Elfutils is a collection of utilities, including stack (to show
@@ -462,6 +456,7 @@ fi
 %{_mandir}/man3/elf_*.3*
 %{_mandir}/man3/elf32_*.3*
 %{_mandir}/man3/elf64_*.3*
+%{_mandir}/man3/gelf.3*
 %{_mandir}/man3/gelf_*.3*
 %{_mandir}/man3/libelf.3*
 
@@ -525,6 +520,12 @@ exit 0
 %systemd_postun_with_restart debuginfod.service
 
 %changelog
+* Thu Apr 23 2026 Aaron Merey <amerey@redhat.com> - 0.195-1
+- Upgrade to upstream elfutils 0.195
+- Drop upstreamed patches
+  elfutils-0.194-zero-sh_addr.patch
+  elfutils-0.194-alloc-jobs.patch
+
 * Thr Mar 5 2026 Aaron Merey <amerey@redhat.com> - 0.194-2
 - Add elfutils-0.194-zero-sh_addr.patch
 
